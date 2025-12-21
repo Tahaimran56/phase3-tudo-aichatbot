@@ -1,0 +1,461 @@
+openapi: 3.1.0
+info:
+  title: Todo Web App API
+  description: |
+    RESTful API for the Phase 2 Todo Web Application.
+    All task endpoints require authentication via Better Auth session cookie.
+  version: 1.0.0
+  contact:
+    name: Todo App Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.todoapp.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints (Better Auth)
+  - name: Tasks
+    description: Task CRUD operations
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Create new user account
+      description: Register a new user with email and password
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          headers:
+            Set-Cookie:
+              description: Session cookie (HTTP-only)
+              schema:
+                type: string
+        '400':
+          description: Validation error (invalid email, weak password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      description: Sign in with email and password
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          headers:
+            Set-Cookie:
+              description: Session cookie (HTTP-only)
+              schema:
+                type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signout:
+    post:
+      tags:
+        - Authentication
+      summary: End user session
+      description: Sign out and invalidate session
+      operationId: signout
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Successfully signed out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully signed out"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get the currently authenticated user's information
+      operationId: getCurrentUser
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks:
+    get:
+      tags:
+        - Tasks
+      summary: List all tasks
+      description: Get all tasks for the authenticated user
+      operationId: listTasks
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Tasks
+      summary: Create new task
+      description: Create a new task for the authenticated user
+      operationId: createTask
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Validation error (empty title)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{taskId}:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: Task ID
+        schema:
+          type: integer
+
+    get:
+      tags:
+        - Tasks
+      summary: Get task by ID
+      description: Get a specific task (must be owned by authenticated user)
+      operationId: getTask
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update task
+      description: Update task title (must be owned by authenticated user)
+      operationId: updateTask
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateRequest'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Validation error (empty title)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Delete task
+      description: Delete a task (must be owned by authenticated user)
+      operationId: deleteTask
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Task deleted successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{taskId}/complete:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        description: Task ID
+        schema:
+          type: integer
+
+    patch:
+      tags:
+        - Tasks
+      summary: Mark task complete
+      description: Mark a task as completed (must be owned by authenticated user)
+      operationId: completeTask
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Task marked as complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Better Auth session cookie (HTTP-only)
+
+  schemas:
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "securepassword123"
+
+    SigninRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          example: "securepassword123"
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-21T10:30:00Z"
+
+    TaskCreateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "Buy groceries"
+        description:
+          type: string
+          maxLength: 10000
+          nullable: true
+          example: "Milk, bread, eggs"
+
+    TaskUpdateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "Buy groceries (updated)"
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Buy groceries"
+        description:
+          type: string
+          nullable: true
+          example: "Milk, bread, eggs"
+        is_completed:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-21T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-12-21T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Validation error"
+        message:
+          type: string
+          example: "Title cannot be empty"
+        status_code:
+          type: integer
+          example: 400
