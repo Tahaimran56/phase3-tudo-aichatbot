@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AuthForm } from '@/components/AuthForm';
-import { signup, isApiError } from '@/lib/auth';
+import { AuthForm } from '../../../components/AuthForm';
+import { signup, isApiError } from '../../../lib/auth';
 
 export default function SignupPage() {
   const router = useRouter();

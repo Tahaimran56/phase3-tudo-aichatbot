@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TaskList } from '@/components/TaskList';
-import { TaskForm } from '@/components/TaskForm';
-import { getCurrentUser, signout, isApiError } from '@/lib/auth';
-import { getTasks, createTask, updateTask, deleteTask, completeTask } from '@/lib/tasks';
-import type { User } from '@/types';
+import { TaskList } from '../../components/TaskList';
+import { TaskForm } from '../../components/TaskForm';
+import { getCurrentUser, signout, isApiError } from '../../lib/auth';
+import { getTasks, createTask, updateTask, deleteTask, completeTask } from '../../lib/tasks';
+import type { User } from '../../types';
 
 export default function DashboardPage() {
   const router = useRouter();
