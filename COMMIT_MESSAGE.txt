@@ -1,0 +1,51 @@
+feat: Configure separate Vercel deployments for frontend and backend
+
+This commit sets up the project for deploying frontend (Next.js) and
+backend (FastAPI) as separate Vercel projects, enabling independent
+deployments and better separation of concerns.
+
+## Key Changes:
+
+### Frontend (`frontend/`)
+- Add vercel.json with Next.js deployment configuration
+- Add .vercelignore to optimize deployment size
+- Add .env.example for environment variable documentation
+- Update next.config.ts with API proxy and environment handling
+- Add DEPLOYMENT.md with detailed deployment instructions
+
+### Backend (`api/`)
+- Add vercel.json with Python/FastAPI deployment configuration
+- Add .vercelignore to exclude unnecessary files
+- Add .env.example for environment variable documentation
+- Fix database initialization with startup event in main.py
+- Update CORS middleware to support separate domain requests
+- Fix import issues in init_db.py
+- Add DEPLOYMENT.md with detailed deployment instructions
+
+### Documentation
+- Add DEPLOYMENT_CHECKLIST.md with step-by-step deployment guide
+- Add SEPARATION_SUMMARY.md explaining the changes
+
+## Fixes:
+
+- 🐛 Fix 500 error on signup by adding automatic database table initialization
+- 🐛 Fix CORS issues for separate domain deployments
+- 🐛 Fix Python import errors in init_db.py
+
+## Benefits:
+
+✅ Independent deployments for frontend and backend
+✅ Better error isolation and debugging
+✅ Separate logs and monitoring
+✅ Can update one service without affecting the other
+✅ Automatic database initialization on startup
+
+## Deployment:
+
+Follow the instructions in DEPLOYMENT_CHECKLIST.md to deploy:
+1. Deploy backend first (set environment variables)
+2. Deploy frontend with backend URL
+3. Update backend with frontend URL
+4. Test signup/signin functionality
+
+Breaking Changes: None - backward compatible with existing setup
