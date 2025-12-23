@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "todo-api",
   "builds": [
     {
       "src": "index.py",
@@ -15,19 +14,5 @@
       "src": "/(.*)",
       "dest": "/index.py"
     }
-  ],
-  "functions": {
-    "index.py": {
-      "memory": 3008,
-      "maxDuration": 10
-    }
-  },
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "SECRET_KEY": "@secret_key",
-    "ALGORITHM": "@algorithm",
-    "ACCESS_TOKEN_EXPIRE_MINUTES": "@access_token_expire_minutes",
-    "FRONTEND_URL": "@frontend_url",
-    "ENVIRONMENT": "@environment"
-  }
+  ]
 }
