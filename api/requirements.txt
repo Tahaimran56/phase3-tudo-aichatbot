@@ -1,0 +1,18 @@
+# FastAPI and server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# Authentication
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+
+# Validation and utilities
+pydantic==2.10.3
+pydantic-settings==2.7.0
+python-multipart==0.0.19
+email-validator==2.2.0

@@ -5,15 +5,23 @@ The backend code is in api/src/ directory for simpler deployment.
 """
 
 import sys
+import os
 from pathlib import Path
 
-# Add the src directory to Python path (it's in the same folder as this file)
+# Add the src directory to Python path
 current_dir = Path(__file__).parent
 src_dir = current_dir / "src"
 sys.path.insert(0, str(src_dir))
 
-# Import the FastAPI app instance from src.main
-from src.main import app
+# Also add to PYTHONPATH for safety
+os.environ['PYTHONPATH'] = str(src_dir) + os.pathsep + os.environ.get('PYTHONPATH', '')
+
+# Import the FastAPI app instance
+try:
+    from main import app
+except ImportError:
+    # Fallback to explicit path import
+    from src.main import app
 
 # Vercel will use this 'app' instance
 __all__ = ["app"]
