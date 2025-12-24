@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
 
+    # Phase 3: OpenAI Configuration
+    openai_api_key: str
+    openai_model: str = "gpt-4o-mini"
+    openai_timeout: int = 10
+
+    # Phase 3: Chat Configuration
+    max_conversation_messages: int = 20
+    chat_rate_limit_per_minute: int = 60
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode."""

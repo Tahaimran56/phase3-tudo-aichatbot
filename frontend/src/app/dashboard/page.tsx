@@ -137,7 +137,23 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">My Tasks</h1>
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-semibold text-gray-900">My Tasks</h1>
+            <nav className="flex gap-4">
+              <a
+                href="/dashboard"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Dashboard
+              </a>
+              <a
+                href="/chat"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                AI Chat
+              </a>
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">{user.email}</span>
             <button

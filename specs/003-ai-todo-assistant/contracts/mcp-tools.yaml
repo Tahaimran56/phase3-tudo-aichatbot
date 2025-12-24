@@ -1,0 +1,559 @@
+# MCP Tools Specification: Phase 3 - AI Chatbot
+
+This document defines the five MCP (Model Context Protocol) tools exposed by the backend
+for the OpenAI Agents SDK to use. These tools enable the AI assistant to perform task
+management operations on behalf of users.
+
+## Tool Design Principles
+
+1. **User Isolation**: All tools automatically filter by authenticated user_id
+2. **Type Safety**: All parameters and returns are strongly typed
+3. **Error Handling**: Tools return success/error status with descriptive messages
+4. **Idempotency**: Tools can be called multiple times safely (where applicable)
+5. **Natural Language Friendly**: Tool parameters map directly to natural language intents
+
+---
+
+## Tool 1: add_task
+
+### Purpose
+Creates a new task for the authenticated user.
+
+### Parameters
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| title | string | Yes | Task title (1-255 chars) | "Buy groceries" |
+| description | string | No | Optional detailed description | "Milk, bread, eggs" |
+
+### Returns
+
+```json
+{
+  "task_id": 42,
+  "status": "success",
+  "title": "Buy groceries"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| task_id | integer | Unique ID of the created task |
+| status | string | Always "success" for successful creation |
+| title | string | Confirmed task title |
+
+### Error Responses
+
+**Invalid Title** (empty or too long):
+```json
+{
+  "status": "error",
+  "message": "Task title must be between 1 and 255 characters"
+}
+```
+
+**Database Error**:
+```json
+{
+  "status": "error",
+  "message": "Failed to create task due to database error"
+}
+```
+
+### Natural Language Examples
+
+- "Add a task to buy groceries"
+- "Create a task called 'Finish report'"
+- "I need to call mom tonight"
+- "Add task: Schedule meeting with description 'Discuss Q4 planning'"
+
+### Implementation Notes
+
+1. Extract user_id from JWT token (automatically provided by MCP context)
+2. Validate title length (1-255 characters)
+3. Create Task record with user_id, title, description (nullable), completed=False
+4. Return task_id and confirmation
+
+---
+
+## Tool 2: list_tasks
+
+### Purpose
+Retrieves the authenticated user's tasks, optionally filtered by completion status.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Description | Example |
+|-----------|------|----------|---------|-------------|---------|
+| status | string | No | "all" | Filter: "all", "pending", or "completed" | "pending" |
+
+### Returns
+
+```json
+{
+  "tasks": [
+    {
+      "id": 5,
+      "title": "Buy groceries",
+      "description": "Milk, bread, eggs",
+      "completed": false,
+      "created_at": "2025-12-24T10:30:00Z",
+      "updated_at": "2025-12-24T10:30:00Z"
+    },
+    {
+      "id": 8,
+      "title": "Finish report",
+      "description": "",
+      "completed": false,
+      "created_at": "2025-12-23T15:20:00Z",
+      "updated_at": "2025-12-23T15:20:00Z"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| tasks | array | List of task objects |
+| tasks[].id | integer | Task ID |
+| tasks[].title | string | Task title |
+| tasks[].description | string | Task description (may be empty) |
+| tasks[].completed | boolean | Completion status |
+| tasks[].created_at | ISO 8601 timestamp | Creation time |
+| tasks[].updated_at | ISO 8601 timestamp | Last update time |
+
+### Error Responses
+
+**Invalid Status Value**:
+```json
+{
+  "status": "error",
+  "message": "Status must be 'all', 'pending', or 'completed'"
+}
+```
+
+### Natural Language Examples
+
+- "Show me all my tasks"
+- "What are my pending tasks?"
+- "List completed tasks"
+- "Show me everything I need to do"
+
+### Implementation Notes
+
+1. Extract user_id from JWT token
+2. Query tasks WHERE user_id = current_user_id
+3. Apply status filter if specified:
+   - "pending": WHERE completed = false
+   - "completed": WHERE completed = true
+   - "all": no filter
+4. Order by created_at DESC (most recent first)
+5. Return list of tasks
+
+---
+
+## Tool 3: complete_task
+
+### Purpose
+Marks a task as completed.
+
+### Parameters
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| task_id | integer | Yes | ID of the task to mark complete | 3 |
+
+### Returns
+
+```json
+{
+  "status": "success",
+  "task_id": 3,
+  "title": "Buy groceries"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| status | string | "success" for successful completion |
+| task_id | integer | Confirmed task ID |
+| title | string | Title of the completed task |
+
+### Error Responses
+
+**Task Not Found** (or doesn't belong to user):
+```json
+{
+  "status": "error",
+  "message": "Task 3 not found"
+}
+```
+
+**Already Completed**:
+```json
+{
+  "status": "success",
+  "task_id": 3,
+  "title": "Buy groceries",
+  "note": "Task was already completed"
+}
+```
+
+### Natural Language Examples
+
+- "Mark task 3 as complete"
+- "Complete the 'buy groceries' task"
+- "I finished task 5"
+- "Done with the meeting task"
+
+### Implementation Notes
+
+1. Extract user_id from JWT token
+2. Query task WHERE id = task_id AND user_id = current_user_id
+3. If not found, return error (enforces user isolation)
+4. Set completed = true, updated_at = now()
+5. Return task_id and title
+
+---
+
+## Tool 4: delete_task
+
+### Purpose
+Permanently removes a task from the database.
+
+### Parameters
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| task_id | integer | Yes | ID of the task to delete | 7 |
+
+### Returns
+
+```json
+{
+  "status": "success",
+  "task_id": 7,
+  "message": "Task deleted"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| status | string | "success" for successful deletion |
+| task_id | integer | Confirmed task ID |
+| message | string | Confirmation message |
+
+### Error Responses
+
+**Task Not Found** (or doesn't belong to user):
+```json
+{
+  "status": "error",
+  "message": "Task 7 not found"
+}
+```
+
+### Natural Language Examples
+
+- "Delete the meeting task"
+- "Remove task 7"
+- "Get rid of the shopping task"
+- "Delete task 3"
+
+### Implementation Notes
+
+1. Extract user_id from JWT token
+2. Query task WHERE id = task_id AND user_id = current_user_id
+3. If not found, return error (enforces user isolation)
+4. Delete task from database
+5. Return confirmation
+
+**Security Note**: Hard delete (not soft delete) for simplicity in Phase 3. Consider soft delete in future phases.
+
+---
+
+## Tool 5: update_task
+
+### Purpose
+Modifies a task's title and/or description.
+
+### Parameters
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| task_id | integer | Yes | ID of the task to update | 1 |
+| title | string | No | New task title (1-255 chars) | "Call mom tonight" |
+| description | string | No | New task description | "Remember to ask about her health" |
+
+**Note**: At least one of `title` or `description` must be provided.
+
+### Returns
+
+```json
+{
+  "status": "success",
+  "task_id": 1,
+  "updated_fields": ["title", "description"]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| status | string | "success" for successful update |
+| task_id | integer | Confirmed task ID |
+| updated_fields | array[string] | List of fields that were updated |
+
+### Error Responses
+
+**Task Not Found** (or doesn't belong to user):
+```json
+{
+  "status": "error",
+  "message": "Task 1 not found"
+}
+```
+
+**No Fields Provided**:
+```json
+{
+  "status": "error",
+  "message": "At least one field (title or description) must be provided"
+}
+```
+
+**Invalid Title Length**:
+```json
+{
+  "status": "error",
+  "message": "Task title must be between 1 and 255 characters"
+}
+```
+
+### Natural Language Examples
+
+- "Change task 1 to 'Call mom tonight'"
+- "Update the description of task 2 to 'Include meeting notes'"
+- "Rename the meeting task to 'Team sync'"
+- "Change task 5 title to 'Review PR' and description to 'PR #345 needs review'"
+
+### Implementation Notes
+
+1. Extract user_id from JWT token
+2. Query task WHERE id = task_id AND user_id = current_user_id
+3. If not found, return error (enforces user isolation)
+4. Validate inputs (title length if provided)
+5. Update only the provided fields
+6. Set updated_at = now()
+7. Return task_id and list of updated fields
+
+---
+
+## MCP Server Implementation
+
+### Server Configuration
+
+```python
+# MCP Server Setup
+from mcp import MCPServer
+
+server = MCPServer(
+    name="todo-task-manager",
+    version="1.0.0",
+    description="Task management tools for todo application"
+)
+
+# Register tools
+server.register_tool(add_task)
+server.register_tool(list_tasks)
+server.register_tool(complete_task)
+server.register_tool(delete_task)
+server.register_tool(update_task)
+```
+
+### Tool Registration Example
+
+```python
+from mcp import Tool, ToolParameter
+
+@server.tool(
+    name="add_task",
+    description="Creates a new task for the user",
+    parameters=[
+        ToolParameter(
+            name="title",
+            type="string",
+            description="Task title",
+            required=True
+        ),
+        ToolParameter(
+            name="description",
+            type="string",
+            description="Optional task description",
+            required=False
+        )
+    ]
+)
+async def add_task(title: str, description: str = "") -> dict:
+    """MCP tool: add_task"""
+    # Implementation
+    pass
+```
+
+### Context Injection
+
+The MCP server automatically injects `user_id` from the authenticated request context
+into each tool call. Tools do not need to accept `user_id` as a parameter from the AI agent.
+
+```python
+from fastapi import Depends
+from .api.deps import get_current_user
+
+# MCP context middleware
+@server.middleware
+async def inject_user_context(request, call_next, current_user: User = Depends(get_current_user)):
+    request.state.user_id = current_user.id
+    return await call_next(request)
+```
+
+---
+
+## Agent Instructions
+
+The following instructions are provided to the OpenAI Agents SDK to guide tool usage:
+
+### System Prompt
+
+```
+You are a helpful task management assistant. You can help users manage their todo tasks through natural language.
+
+Available tools:
+- add_task: Create new tasks
+- list_tasks: View tasks (all, pending, or completed)
+- complete_task: Mark tasks as done
+- delete_task: Remove tasks
+- update_task: Modify task details
+
+Guidelines:
+1. Always confirm actions with specific task details (ID, title)
+2. For ambiguous requests, ask clarifying questions before acting
+3. When multiple tasks match a description, list options and ask which one
+4. Be friendly and conversational
+5. If a task operation fails, explain the error and suggest alternatives
+
+Examples:
+- User: "Add a task to buy groceries"
+  → Call add_task(title="Buy groceries")
+  → Respond: "I've created a task 'Buy groceries' with ID 42."
+
+- User: "Show my tasks"
+  → Call list_tasks(status="all")
+  → Respond: "Here are your tasks: [list tasks with IDs and completion status]"
+
+- User: "Delete the meeting task"
+  → If multiple tasks contain "meeting", ask which one
+  → Otherwise, call delete_task(task_id=X)
+  → Respond: "I've deleted task X 'Meeting with team'."
+```
+
+---
+
+## Testing
+
+### Tool Call Examples
+
+**Scenario 1: Create Task**
+```json
+{
+  "tool": "add_task",
+  "parameters": {
+    "title": "Buy groceries",
+    "description": "Milk, bread, eggs"
+  },
+  "expected_result": {
+    "status": "success",
+    "task_id": 42,
+    "title": "Buy groceries"
+  }
+}
+```
+
+**Scenario 2: List Pending Tasks**
+```json
+{
+  "tool": "list_tasks",
+  "parameters": {
+    "status": "pending"
+  },
+  "expected_result": {
+    "tasks": [
+      {"id": 5, "title": "Buy groceries", "completed": false},
+      {"id": 8, "title": "Finish report", "completed": false}
+    ]
+  }
+}
+```
+
+**Scenario 3: Complete Task**
+```json
+{
+  "tool": "complete_task",
+  "parameters": {
+    "task_id": 5
+  },
+  "expected_result": {
+    "status": "success",
+    "task_id": 5,
+    "title": "Buy groceries"
+  }
+}
+```
+
+**Scenario 4: Update Task**
+```json
+{
+  "tool": "update_task",
+  "parameters": {
+    "task_id": 8,
+    "title": "Finish Q4 report",
+    "description": "Include revenue projections"
+  },
+  "expected_result": {
+    "status": "success",
+    "task_id": 8,
+    "updated_fields": ["title", "description"]
+  }
+}
+```
+
+**Scenario 5: Delete Task**
+```json
+{
+  "tool": "delete_task",
+  "parameters": {
+    "task_id": 3
+  },
+  "expected_result": {
+    "status": "success",
+    "task_id": 3,
+    "message": "Task deleted"
+  }
+}
+```
+
+---
+
+## Security Considerations
+
+1. **User Isolation**: All tools MUST filter by authenticated user_id
+2. **Input Validation**: Validate all parameters before database operations
+3. **SQL Injection**: Use ORM (SQLModel) for all queries - no raw SQL
+4. **Rate Limiting**: Enforce rate limits at API gateway level (60 req/min per user)
+5. **Logging**: Log all tool calls with user_id, tool name, and timestamp
+6. **Error Messages**: Don't leak sensitive information in error messages
+
+---
+
+**Generated**: 2025-12-24
+**Author**: AI Agent (Claude Sonnet 4.5)
+**Status**: Complete
+**Format**: YAML-style documentation (not strict OpenAPI since MCP has its own schema)

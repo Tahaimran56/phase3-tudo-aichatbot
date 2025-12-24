@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: Todo App - Chat API
+  description: |
+    AI-powered conversational interface for task management using OpenAI Agents SDK and MCP.
+
+    Phase 3 adds a chat endpoint that allows users to manage tasks through natural language.
+    The system uses Model Context Protocol (MCP) to expose five task operations as standardized tools.
+  version: 3.0.0
+  contact:
+    name: Todo App Team
+    email: support@todoapp.example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.todoapp.example.com
+    description: Production server
+
+tags:
+  - name: chat
+    description: Conversational AI interface for task management
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      tags:
+        - chat
+      summary: Send chat message to AI assistant
+      description: |
+        Send a natural language message to the AI assistant to manage tasks.
+
+        The assistant will:
+        1. Interpret the user's intent
+        2. Invoke appropriate MCP tools (add_task, list_tasks, complete_task, delete_task, update_task)
+        3. Return a friendly response with tool execution results
+
+        Conversation history is automatically loaded from the database if conversation_id is provided.
+      operationId: sendChatMessage
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Authenticated user's UUID
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              new_conversation:
+                summary: Start new conversation
+                value:
+                  message: "Add a task to buy groceries"
+              continue_conversation:
+                summary: Continue existing conversation
+                value:
+                  conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+                  message: "Mark task 3 as complete"
+      responses:
+        '200':
+          description: Chat message processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                task_created:
+                  summary: Task created successfully
+                  value:
+                    conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+                    response: "I've created a task 'Buy groceries' with ID 42. Is there anything else you'd like to add?"
+                    tool_calls:
+                      - tool: "add_task"
+                        parameters:
+                          title: "Buy groceries"
+                        result:
+                          task_id: 42
+                          status: "success"
+                          title: "Buy groceries"
+                task_completed:
+                  summary: Task marked complete
+                  value:
+                    conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+                    response: "Great! I've marked task 3 'Call mom' as complete."
+                    tool_calls:
+                      - tool: "complete_task"
+                        parameters:
+                          task_id: 3
+                        result:
+                          status: "success"
+                          task_id: 3
+                          title: "Call mom"
+                list_tasks:
+                  summary: List tasks
+                  value:
+                    conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+                    response: "Here are your pending tasks:\n1. Task 5: Finish report (pending)\n2. Task 8: Schedule meeting (pending)\n3. Task 12: Review PR (pending)"
+                    tool_calls:
+                      - tool: "list_tasks"
+                        parameters:
+                          status: "pending"
+                        result:
+                          tasks:
+                            - id: 5
+                              title: "Finish report"
+                              description: "Q4 quarterly report"
+                              completed: false
+                            - id: 8
+                              title: "Schedule meeting"
+                              description: ""
+                              completed: false
+                            - id: 12
+                              title: "Review PR"
+                              description: "Review PR #345"
+                              completed: false
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_message:
+                  summary: Missing message field
+                  value:
+                    detail: "Field 'message' is required"
+                empty_message:
+                  summary: Empty message
+                  value:
+                    detail: "Message cannot be empty"
+        '401':
+          description: Unauthorized - invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Invalid authentication credentials"
+        '404':
+          description: Conversation not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Conversation not found"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Rate limit exceeded. Maximum 60 requests per minute."
+        '500':
+          description: Internal server error or OpenAI API failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                openai_error:
+                  summary: OpenAI API error
+                  value:
+                    detail: "AI service temporarily unavailable. Please try again later."
+                server_error:
+                  summary: General server error
+                  value:
+                    detail: "An unexpected error occurred"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from Better Auth authentication endpoints.
+        Include in Authorization header as: `Bearer <token>`
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: |
+            Optional conversation ID to continue an existing conversation.
+            If omitted, a new conversation will be created.
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: User's natural language message
+          example: "Add a task to buy groceries"
+
+    ChatResponse:
+      type: object
+      required:
+        - conversation_id
+        - response
+        - tool_calls
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation ID (new or existing)
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        response:
+          type: string
+          description: AI assistant's natural language response
+          example: "I've created a task 'Buy groceries' with ID 42."
+        tool_calls:
+          type: array
+          description: List of MCP tool calls executed during this request
+          items:
+            $ref: '#/components/schemas/ToolCall'
+
+    ToolCall:
+      type: object
+      required:
+        - tool
+        - parameters
+        - result
+      properties:
+        tool:
+          type: string
+          enum: [add_task, list_tasks, complete_task, delete_task, update_task]
+          description: Name of the MCP tool that was invoked
+          example: "add_task"
+        parameters:
+          type: object
+          description: Parameters passed to the tool
+          additionalProperties: true
+          example:
+            title: "Buy groceries"
+            description: "Milk, bread, eggs"
+        result:
+          type: object
+          description: Result returned by the tool
+          additionalProperties: true
+          example:
+            task_id: 42
+            status: "success"
+            title: "Buy groceries"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Invalid authentication credentials"
+        code:
+          type: string
+          description: Optional machine-readable error code
+          example: "AUTH_INVALID_TOKEN"
+
+  examples:
+    AddTaskRequest:
+      summary: Add a new task
+      value:
+        message: "Add a task to buy groceries with description 'Milk, bread, eggs'"
+
+    ListTasksRequest:
+      summary: List pending tasks
+      value:
+        conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+        message: "Show me all my pending tasks"
+
+    CompleteTaskRequest:
+      summary: Mark task as complete
+      value:
+        conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+        message: "Mark task 5 as complete"
+
+    DeleteTaskRequest:
+      summary: Delete a task
+      value:
+        conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+        message: "Delete the meeting task"
+
+    UpdateTaskRequest:
+      summary: Update task title
+      value:
+        conversation_id: "660e8400-e29b-41d4-a716-446655440001"
+        message: "Change task 3 to 'Call mom tonight'"
