@@ -83,11 +83,11 @@ export default function ChatInterface() {
               <div className="text-left text-sm text-gray-600 space-y-2">
                 <p className="font-medium text-gray-900">Try asking:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>"Add a task to buy groceries"</li>
-                  <li>"Show me all my tasks"</li>
-                  <li>"Mark task 5 as complete"</li>
-                  <li>"Update task 3 to 'Call dentist'"</li>
-                  <li>"Delete task 2"</li>
+                  <li>&quot;Add a task to buy groceries&quot;</li>
+                  <li>&quot;Show me all my tasks&quot;</li>
+                  <li>&quot;Mark task 5 as complete&quot;</li>
+                  <li>&quot;Update task 3 to &apos;Call dentist&apos;&quot;</li>
+                  <li>&quot;Delete task 2&quot;</li>
                 </ul>
               </div>
             </div>

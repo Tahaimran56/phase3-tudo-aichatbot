@@ -24,8 +24,8 @@ export interface ChatRequest {
 export interface ToolCall {
   id: string;
   name: string;
-  arguments: Record<string, any>;
-  result?: Record<string, any> | null;
+  arguments: Record<string, unknown>;
+  result?: Record<string, unknown> | null;
 }
 
 export interface ChatResponse {

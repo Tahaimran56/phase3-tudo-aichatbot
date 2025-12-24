@@ -54,8 +54,9 @@ export function useChat(): UseChatReturn {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err: any) {
-      setError(err.message || "Failed to send message. Please try again.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to send message. Please try again.";
+      setError(errorMessage);
 
       // Remove the user message that failed
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
