@@ -41,9 +41,9 @@ export function TaskItem({
 
   return (
     <div
-      className={`rounded-lg border bg-white p-4 shadow-sm transition-opacity ${
+      className={`rounded-xl border bg-white p-4 sm:p-5 shadow-sm hover:shadow-lg transition-all duration-300 animate-fade-in ${
         isLoading ? 'opacity-50' : ''
-      } ${task.is_completed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}
+      } ${task.is_completed ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' : 'border-gray-200 hover:border-blue-200'}`}
     >
       <div className="flex items-start gap-3">
         {/* Checkbox */}

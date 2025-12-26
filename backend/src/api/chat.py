@@ -117,3 +117,81 @@ async def chat(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred processing your message. Please try again.",
         )
+
+
+@router.get("/history/{conversation_id}")
+async def get_chat_history(
+    conversation_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+):
+    """Get chat history for a conversation.
+    
+    Args:
+        conversation_id: UUID of the conversation
+        db: Database session
+        current_user: Authenticated user
+        
+    Returns:
+        List of messages in the conversation
+    """
+    from ..models.conversation import Conversation
+    from ..models.message import Message
+    
+    # Verify user owns this conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id,
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+    
+    # Get all messages in the conversation
+    messages = db.query(Message).filter(
+        Message.conversation_id == conversation_id
+    ).order_by(Message.created_at).all()
+    
+    return {
+        "conversation_id": str(conversation_id),
+        "messages": [
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "content": msg.content,
+                "created_at": msg.created_at.isoformat(),
+            }
+            for msg in messages
+        ]
+    }
+
+
+@router.get("/conversations")
+async def get_user_conversations(
+    db: DbSession,
+    current_user: CurrentUser,
+):
+    """Get all conversations for the current user.
+    
+    Returns:
+        List of conversation IDs with their last message
+    """
+    from ..models.conversation import Conversation
+    
+    conversations = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id
+    ).order_by(Conversation.updated_at.desc()).limit(10).all()
+    
+    return {
+        "conversations": [
+            {
+                "id": str(conv.id),
+                "created_at": conv.created_at.isoformat(),
+                "updated_at": conv.updated_at.isoformat() if conv.updated_at else conv.created_at.isoformat(),
+            }
+            for conv in conversations
+        ]
+    }

@@ -1,5 +1,6 @@
 """Pydantic schemas for chat-related requests and responses."""
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -28,3 +29,22 @@ class ChatResponse(BaseModel):
     conversation_id: UUID
     response: str
     tool_calls: list[ToolCall] = []
+
+
+class MessageResponse(BaseModel):
+    """Schema for message in conversation history."""
+
+    id: UUID
+    role: str
+    content: str
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationHistoryResponse(BaseModel):
+    """Schema for conversation history."""
+
+    conversation_id: UUID
+    messages: list[MessageResponse] = []

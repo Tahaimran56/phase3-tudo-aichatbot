@@ -19,7 +19,7 @@ export default function ChatInterface() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-73px)] bg-gray-50">
+    <div className="flex flex-col h-[calc(100vh-73px)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
 
       {/* Error Banner */}
       {error && (
@@ -60,7 +60,7 @@ export default function ChatInterface() {
         {messages.length === 0 ? (
           // Empty State
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100 max-w-md">
               <svg
                 className="mx-auto h-12 w-12 text-blue-600 mb-4"
                 fill="none"

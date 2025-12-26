@@ -30,7 +30,7 @@ export function TaskForm({ onSubmit, isLoading }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
       {error && (
         <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>
       )}

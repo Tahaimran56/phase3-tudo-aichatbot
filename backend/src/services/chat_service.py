@@ -248,18 +248,18 @@ async def process_chat_message(
         # Step 4: Prepare messages for OpenAI
         messages = history + [{"role": "user", "content": message}]
 
-        # Add system message if this is a new conversation
-        if not history:
-            system_message = {
+        # Always add system message to guide the AI
+
+        system_message = {
                 "role": "system",
                 "content": (
-                    "You are a helpful task management assistant. "
-                    "You help users manage their todo tasks using natural language. "
-                    "When users ask to create, update, complete, delete, or list tasks, "
-                    "use the appropriate tools. Be friendly and concise."
+                    "You are a task management assistant with access to tools. IMPORTANT: You MUST use the provided tools to manage tasks. Never just describe code or give examples. "
+                    "Available tools: add_task, list_tasks, complete_task, update_task, delete_task. "
+                    "When user asks to add a task, use add_task. When user asks to delete, use delete_task with task ID. "
+                    "Always execute actions using tools, never just describe code. Be concise."
                 ),
             }
-            messages = [system_message] + messages
+        messages = [system_message] + messages
 
         logger.info(
             f"Calling OpenAI for conversation {conversation.id} with {len(messages)} messages"

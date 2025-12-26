@@ -2,8 +2,8 @@
  * Custom hook for chat state management
  */
 
-import { useState } from "react";
-import { sendMessage as sendMessageApi } from "@/lib/chat";
+import { useState, useEffect } from "react";
+import { sendMessage as sendMessageApi, getChatHistory, getUserConversations } from "@/lib/chat";
 import type { Message } from "@/types/chat";
 
 export interface UseChatReturn {
@@ -21,6 +21,32 @@ export function useChat(): UseChatReturn {
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
+  // Load conversation history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const conversationsResponse = await getUserConversations();
+        if (conversationsResponse.conversations.length > 0) {
+          const latestConvId = conversationsResponse.conversations[0].id;
+          setConversationId(latestConvId);
+          const historyResponse = await getChatHistory(latestConvId);
+          if (historyResponse.messages.length > 0) {
+            const loadedMessages: Message[] = historyResponse.messages.map((msg) => ({
+              id: msg.id,
+              role: msg.role as "user" | "assistant",
+              content: msg.content,
+              created_at: msg.created_at,
+            }));
+            setMessages(loadedMessages);
+          }
+        }
+      } catch {
+        // Silent fail - user might not have any conversations yet
+      }
+    };
+    loadHistory();
+  }, []);
+
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
 
@@ -29,7 +55,7 @@ export function useChat(): UseChatReturn {
 
     // Add user message immediately for better UX
     const userMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: "temp-" + new Date().getTime(),
       role: "user",
       content: message,
       created_at: new Date().toISOString(),
@@ -47,7 +73,7 @@ export function useChat(): UseChatReturn {
 
       // Add assistant response
       const assistantMessage: Message = {
-        id: `${Date.now()}-assistant`,
+        id: new Date().getTime() + "-assistant",
         role: "assistant",
         content: response.response,
         created_at: new Date().toISOString(),
