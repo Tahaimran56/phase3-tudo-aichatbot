@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Phase 3: OpenAI Configuration
     openai_api_key: str
     openai_model: str = "gpt-4o-mini"
-    openai_timeout: int = 10
+    openai_timeout: int = 60
 
     # Phase 3: Chat Configuration
     max_conversation_messages: int = 20
